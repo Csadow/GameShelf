@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/App_Data/
+.vs/
+.idea/
+*.user
+*.suo
+docs/DEFENSE.md
+docs/REQUIREMENTS_AUDIT.md
+docs/screenshots/
+presentation/GameShelf-Presentation.pdf
+presentation/README.md
+presentation/assets/
+presentation/generate.js
+presentation/helpers/
+presentation/package.json

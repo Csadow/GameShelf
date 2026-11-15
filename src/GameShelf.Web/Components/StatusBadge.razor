@@ -1,0 +1,5 @@
+<span class="status-badge status-@Status.ToString().ToLowerInvariant()"><span class="status-dot"></span>@Status.Label()</span>
+
+@code {
+    [Parameter] public PlayStatus Status { get; set; }
+}

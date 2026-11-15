@@ -1,0 +1,35 @@
+<article class="game-card">
+    <button type="button" class="card-cover @GameVisuals.Palette(Game.Title)" aria-label="View details for @Game.Title" @onclick="() => OnView.InvokeAsync(Game)">
+        <span class="cover-top">YOUR GAME COLLECTION</span>
+        <span class="cover-letters">@GameVisuals.Initials(Game.Title)</span>
+        <span class="cover-bottom">@Game.Genre.ToUpperInvariant()</span>
+    </button>
+    <div class="card-content">
+        <div class="card-title-row">
+            <h3 title="@Game.Title">@Game.Title</h3>
+            <button class="favorite-button @(Game.Favorite ? "is-favorite" : "")" type="button"
+                    aria-label="@(Game.Favorite ? "Remove from favorites" : "Add to favorites")"
+                    title="@(Game.Favorite ? "Remove from favorites" : "Add to favorites")"
+                    @onclick="() => OnFavorite.InvokeAsync(Game)">@(Game.Favorite ? "♥" : "♡")</button>
+        </div>
+        <div class="game-meta">@Game.Platform <span>·</span> @Game.Genre</div>
+        <div class="card-status-row"><StatusBadge Status="Game.Status" />
+            @if (Game.Score is not null) { <span class="card-score">★ @Game.Score/10</span> }
+        </div>
+        <div class="card-footer">
+            <span>@Game.HoursPlayed.ToString("0.#") hours played</span>
+            <div class="card-actions">
+                <button type="button" @onclick="() => OnEdit.InvokeAsync(Game)">Edit</button>
+                <button type="button" class="delete-link" aria-label="Delete @Game.Title" @onclick="() => OnDelete.InvokeAsync(Game)">Delete</button>
+            </div>
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public GameEntry Game { get; set; } = default!;
+    [Parameter] public EventCallback<GameEntry> OnEdit { get; set; }
+    [Parameter] public EventCallback<GameEntry> OnDelete { get; set; }
+    [Parameter] public EventCallback<GameEntry> OnFavorite { get; set; }
+    [Parameter] public EventCallback<GameEntry> OnView { get; set; }
+}

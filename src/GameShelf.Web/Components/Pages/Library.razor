@@ -1,0 +1,152 @@
+@page "/library"
+@rendermode InteractiveServer
+@inject IGameRepository Repository
+
+<PageTitle>My Library · GameShelf</PageTitle>
+
+<div class="page-heading">
+    <div><div class="eyebrow">YOUR COLLECTION</div><h1>My library<span class="accent">.</span></h1><p class="muted">Every game, every memory, one place.</p></div>
+    <button type="button" class="button button-primary" @onclick="OpenNew">+ Add a game</button>
+</div>
+
+@if (_notice is not null) { <div class="notice" role="status">@_notice</div> }
+@if (_error is not null) { <div class="alert" role="alert">@_error</div> }
+
+@if (_games is not null)
+{
+    <div class="library-toolbar">
+        <div class="search-field"><span aria-hidden="true">⌕</span><input type="search" aria-label="Search games" placeholder="Search games, platforms, genres..." @bind="_search" @bind:event="oninput" /></div>
+        <label class="sort-field">Sort by <select aria-label="Sort games" @bind="_sort">
+            <option value="@GameSort.RecentlyAdded">Recently added</option><option value="@GameSort.Title">Title A–Z</option>
+            <option value="@GameSort.HighestScore">Highest score</option><option value="@GameSort.MostPlayed">Most played</option>
+        </select></label>
+    </div>
+    <div class="filter-row" role="group" aria-label="Filter by play status">
+        <button type="button" class="filter-chip @(_status is null ? "active" : "")" @onclick="() => SetStatus(null)">All <span>@_games.Count</span></button>
+        @foreach (var status in Enum.GetValues<PlayStatus>())
+        {
+            <button type="button" class="filter-chip @(_status == status ? "active" : "")" @onclick="() => SetStatus(status)">@status.Label() <span>@_games.Count(game => game.Status == status)</span></button>
+        }
+    </div>
+    <div class="results-label"><strong>@Filtered.Count</strong> @(Filtered.Count == 1 ? "game" : "games") <span>in view</span></div>
+    @if (Filtered.Count == 0)
+    {
+        <div class="empty-state"><div class="empty-symbol">✦</div><h2>No games found</h2><p>Try another search or status, or add a new game.</p><button type="button" class="button button-primary" @onclick="OpenNew">+ Add a game</button></div>
+    }
+    else
+    {
+        <div class="game-grid">
+            @foreach (var game in Filtered)
+            { <GameCard @key="game.Id" Game="game" OnEdit="OpenEdit" OnDelete="AskDelete" OnFavorite="ToggleFavorite" OnView="OpenView" /> }
+        </div>
+    }
+}
+else if (_error is null) { <p class="muted">Loading your library…</p> }
+
+@if (_showEditor)
+{
+    <div class="modal-backdrop" @onclick="CloseEditor">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title" @onclick:stopPropagation>
+            <GameEditor @key="_editorKey" Existing="_editing" Error="_formError" OnSave="SaveGame" OnCancel="CloseEditor" />
+        </div>
+    </div>
+}
+@if (_pendingDelete is not null)
+{
+    <div class="modal-backdrop" @onclick="CancelDelete">
+        <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" @onclick:stopPropagation>
+            <div class="modal-head"><div><span class="eyebrow">REMOVE GAME</span><h2 id="delete-title">Delete @_pendingDelete.Title?</h2></div></div>
+            <p class="muted">This removes the game and its notes from your local collection.</p>
+            <div class="modal-actions"><button type="button" class="button button-ghost" @onclick="CancelDelete">Cancel</button><button type="button" class="button button-danger" @onclick="ConfirmDelete">Delete game</button></div>
+        </div>
+    </div>
+}
+@if (_viewing is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseView">
+        <div class="modal details-modal" role="dialog" aria-modal="true" aria-labelledby="details-title" @onclick:stopPropagation>
+            <div class="modal-head"><div><span class="eyebrow">GAME DETAILS</span><h2 id="details-title">@_viewing.Title</h2></div><button type="button" class="icon-button" aria-label="Close details" @onclick="CloseView">✕</button></div>
+            <div class="details-cover @GameVisuals.Palette(_viewing.Title)">@GameVisuals.Initials(_viewing.Title)</div>
+            <div class="details-status"><StatusBadge Status="_viewing.Status" /> @if (_viewing.Score is not null) { <span class="card-score">★ @_viewing.Score/10</span> }</div>
+            <dl class="details-list"><div><dt>Platform</dt><dd>@_viewing.Platform</dd></div><div><dt>Genre</dt><dd>@_viewing.Genre</dd></div><div><dt>Hours played</dt><dd>@_viewing.HoursPlayed.ToString("0.#")</dd></div><div><dt>Added</dt><dd>@_viewing.AddedAt.ToString("d MMM yyyy")</dd></div>
+                @if (_viewing.CompletedOn is not null) { <div><dt>Completed</dt><dd>@_viewing.CompletedOn.Value.ToString("d MMM yyyy")</dd></div> }
+            </dl>
+            <div class="details-notes"><strong>Your notes</strong><p>@(string.IsNullOrWhiteSpace(_viewing.Notes) ? "No notes yet." : _viewing.Notes)</p></div>
+            <div class="modal-actions"><button type="button" class="button button-ghost" @onclick="CloseView">Close</button><button type="button" class="button button-primary" @onclick="() => EditViewed(_viewing)">Edit game</button></div>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<GameEntry>? _games;
+    private string _search = "";
+    private PlayStatus? _status;
+    private GameSort _sort = GameSort.RecentlyAdded;
+    private bool _showEditor;
+    private GameEntry? _editing;
+    private GameEntry? _pendingDelete;
+    private GameEntry? _viewing;
+    private Guid _editorKey;
+    private string? _formError;
+    private string? _error;
+    private string? _notice;
+    private IReadOnlyList<GameEntry> Filtered => GameCatalog.Query(_games ?? [], _search, _status, _sort);
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        try { _games = await Repository.GetAllAsync(); _error = null; }
+        catch (Exception) { _error = "Your collection could not be loaded. Check the data file and try again."; }
+    }
+
+    private void SetStatus(PlayStatus? status) => _status = status;
+    private void OpenNew() { _editing = null; _formError = null; _editorKey = Guid.NewGuid(); _showEditor = true; }
+    private void OpenEdit(GameEntry game) { _editing = game; _formError = null; _editorKey = Guid.NewGuid(); _showEditor = true; }
+    private void CloseEditor() { _showEditor = false; _formError = null; }
+    private void AskDelete(GameEntry game) => _pendingDelete = game;
+    private void CancelDelete() => _pendingDelete = null;
+    private void OpenView(GameEntry game) => _viewing = game;
+    private void CloseView() => _viewing = null;
+    private void EditViewed(GameEntry game) { _viewing = null; OpenEdit(game); }
+
+    private async Task SaveGame(GameDraft draft)
+    {
+        try
+        {
+            var result = await Repository.SaveAsync(draft, _editing?.Id);
+            if (!result.IsSuccess) { _formError = result.Error; return; }
+            _showEditor = false;
+            _formError = null;
+            _notice = _editing is null ? "Game added to your library." : "Game updated.";
+            await Reload();
+        }
+        catch (Exception) { _formError = "Could not save the game. Check that the data file is writable."; }
+    }
+
+    private async Task ToggleFavorite(GameEntry game)
+    {
+        var draft = new GameDraft(game.Title, game.Platform, game.Genre, game.Status, game.Score, game.HoursPlayed, game.Notes, !game.Favorite);
+        try
+        {
+            var result = await Repository.SaveAsync(draft, game.Id);
+            if (!result.IsSuccess) { _error = result.Error; return; }
+            _notice = result.Value!.Favorite ? "Added to favorites." : "Removed from favorites.";
+            await Reload();
+        }
+        catch (Exception) { _error = "Could not update the game. Check that the data file is writable."; }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (_pendingDelete is null) return;
+        try
+        {
+            var deleted = await Repository.DeleteAsync(_pendingDelete.Id);
+            _notice = deleted ? "Game deleted." : "This game was already removed.";
+            _pendingDelete = null;
+            await Reload();
+        }
+        catch (Exception) { _error = "Could not delete the game. Check that the data file is writable."; _pendingDelete = null; }
+    }
+}

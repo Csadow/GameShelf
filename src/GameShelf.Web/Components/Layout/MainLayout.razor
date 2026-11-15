@@ -1,0 +1,33 @@
+@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/" aria-label="GameShelf home">
+            <span class="brand-icon">G</span>
+            <span>GameShelf<span class="brand-dot">.</span></span>
+        </a>
+        <div class="sidebar-label">YOUR SPACE</div>
+        <nav class="side-nav" aria-label="Main navigation">
+            <NavLink href="/" Match="NavLinkMatch.All"><span aria-hidden="true">◫</span> Overview</NavLink>
+            <NavLink href="/library"><span aria-hidden="true">▦</span> My library</NavLink>
+            <NavLink href="/insights"><span aria-hidden="true">◉</span> Insights</NavLink>
+        </nav>
+        <div class="sidebar-bottom">
+            <span class="sidebar-orbit" aria-hidden="true">✦</span>
+            <strong>Your next favorite awaits.</strong>
+            <p>Track the games you play and the ones you plan to explore.</p>
+        </div>
+    </aside>
+    <div class="main-column">
+        <header class="topbar">
+            <span class="topbar-label">PERSONAL GAME JOURNAL</span>
+            <span class="topbar-chip"><span class="live-dot"></span> Local collection</span>
+        </header>
+        <main class="page-content">@Body</main>
+    </div>
+</div>
+
+<div id="blazor-error-ui">
+    Something went wrong. <a href="" class="reload">Reload</a>
+    <a class="dismiss">✕</a>
+</div>

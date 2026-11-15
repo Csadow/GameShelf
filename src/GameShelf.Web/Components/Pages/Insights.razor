@@ -1,0 +1,80 @@
+@page "/insights"
+@rendermode InteractiveServer
+@inject IGameRepository Repository
+
+<PageTitle>Insights · GameShelf</PageTitle>
+
+<div class="page-heading">
+    <div><div class="eyebrow">YOUR GAMING STORY</div><h1>Insights<span class="accent">.</span></h1><p class="muted">A closer look at the collection you have built.</p></div>
+    <a class="button button-ghost" href="/library">Browse library ↗</a>
+</div>
+
+@if (_error is not null) { <div class="alert" role="alert">@_error</div> }
+else if (_games is null) { <p class="muted">Loading insights…</p> }
+else
+{
+    <section class="stats-grid" aria-label="Collection statistics">
+        <StatCard Label="Games collected" Value="@Stats.Total.ToString()" Icon="▦" Tone="purple" />
+        <StatCard Label="Favorites" Value="@Stats.Favorites.ToString()" Icon="♥" Tone="pink" />
+        <StatCard Label="Average score" Value="@(Stats.AverageScore?.ToString("0.0") ?? "—")" Icon="★" Tone="orange" />
+        <StatCard Label="Hours played" Value="@Stats.TotalHours.ToString("0.#")" Icon="◷" Tone="cyan" />
+    </section>
+    <div class="insights-grid">
+        <section class="panel">
+            <div class="section-heading"><div><span class="eyebrow">COLLECTION BREAKDOWN</span><h2>Play status</h2></div></div>
+            @foreach (var status in Enum.GetValues<PlayStatus>())
+            {
+                var count = _games.Count(game => game.Status == status);
+                <div class="bar-row"><div class="bar-label"><span>@status.Label()</span><strong>@count</strong></div>
+                    <div class="bar-track"><div class="bar-fill status-fill-@status.ToString().ToLowerInvariant()" style="width: @(Stats.Total == 0 ? 0 : 100.0 * count / Stats.Total)%"></div></div>
+                </div>
+            }
+        </section>
+        <section class="panel insight-highlight">
+            <span class="eyebrow">THE JOURNEY SO FAR</span>
+            <div class="insight-big">@Stats.CompletionPercent<span>%</span></div>
+            <h2>Completion rate</h2>
+            <p>@(Stats.Total == 0 ? "Add a few games to see your progress." : $"You have completed {Stats.Completed} of the {Stats.Total} games in your collection.")</p>
+            <div class="insight-decoration" aria-hidden="true">✦</div>
+        </section>
+        <section class="panel">
+            <div class="section-heading"><div><span class="eyebrow">WHAT YOU PLAY</span><h2>Top genres</h2></div></div>
+            @if (!TopGenres.Any()) { <div class="empty-mini">Genres will appear as you add games.</div> }
+            else
+            {
+                @foreach (var (genre, count) in TopGenres)
+                {
+                    <div class="genre-row"><span>@genre</span><div class="genre-rule"></div><strong>@count</strong></div>
+                }
+            }
+        </section>
+        <section class="panel">
+            <div class="section-heading"><div><span class="eyebrow">SAVED FAVORITES</span><h2>Games you love</h2></div></div>
+            @if (!Favorites.Any()) { <div class="empty-mini">Tap the heart on a game to mark it as a favorite.</div> }
+            else
+            {
+                @foreach (var game in Favorites)
+                {
+                    <div class="compact-game"><div class="mini-cover @GameVisuals.Palette(game.Title)">@GameVisuals.Initials(game.Title)</div>
+                        <div class="compact-title"><strong>@game.Title</strong><span>@game.Genre</span></div>
+                        <span class="favorite-heart">♥</span>
+                    </div>
+                }
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<GameEntry>? _games;
+    private string? _error;
+    private CatalogStats Stats => GameCatalog.Summarize(_games ?? []);
+    private IReadOnlyList<(string Genre, int Count)> TopGenres => GameCatalog.TopGenres(_games ?? []);
+    private IEnumerable<GameEntry> Favorites => (_games ?? []).Where(game => game.Favorite).OrderByDescending(game => game.Score).Take(4);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _games = await Repository.GetAllAsync(); }
+        catch (Exception) { _error = "Your collection could not be loaded. Check the data file and try again."; }
+    }
+}

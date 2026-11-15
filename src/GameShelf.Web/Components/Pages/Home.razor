@@ -1,0 +1,107 @@
+@page "/"
+@rendermode InteractiveServer
+@inject IGameRepository Repository
+
+<PageTitle>Overview · GameShelf</PageTitle>
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">YOUR DASHBOARD</div>
+        <h1>Good to see you<span class="accent">.</span></h1>
+        <p class="muted">A home for every world you have explored.</p>
+    </div>
+    <a class="button button-primary" href="/library">+ Add a game</a>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert" role="alert">@_error</div>
+}
+else if (_games is null)
+{
+    <p class="muted">Loading your collection…</p>
+}
+else
+{
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <div class="hero-kicker">✦ &nbsp; YOUR GAMING STORY</div>
+            <h2>Every adventure<br />has a place here.</h2>
+            <p>Keep your backlog close, remember the games you loved, and see how far you have come.</p>
+            <a href="/library" class="hero-link">Explore your library <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+            <div class="hero-ring ring-one"></div><div class="hero-ring ring-two"></div>
+            <div class="hero-art-icon">✦</div>
+            <div class="hero-art-label">PLAY · DISCOVER · REMEMBER</div>
+        </div>
+    </section>
+
+    <section class="stats-grid" aria-label="Collection statistics">
+        <StatCard Label="Total games" Value="@Stats.Total.ToString()" Icon="▦" Tone="purple" />
+        <StatCard Label="Currently playing" Value="@Stats.Playing.ToString()" Icon="▶" Tone="cyan" />
+        <StatCard Label="Completed" Value="@Stats.Completed.ToString()" Icon="✓" Tone="green" />
+        <StatCard Label="Hours played" Value="@Stats.TotalHours.ToString("0.#")" Icon="◷" Tone="orange" />
+    </section>
+
+    <div class="dashboard-grid">
+        <section class="panel">
+            <div class="section-heading"><div><span class="eyebrow">IN PROGRESS</span><h2>Currently playing</h2></div><a href="/library">View all ↗</a></div>
+            @if (!Playing.Any())
+            {
+                <div class="empty-mini">No games in progress yet. <a href="/library">Pick one from your library.</a></div>
+            }
+            else
+            {
+                @foreach (var game in Playing)
+                {
+                    <div class="compact-game">
+                        <div class="mini-cover @GameVisuals.Palette(game.Title)">@GameVisuals.Initials(game.Title)</div>
+                        <div class="compact-title"><strong>@game.Title</strong><span>@game.Genre · @game.Platform</span></div>
+                        <span class="compact-hours">@game.HoursPlayed.ToString("0.#")h</span>
+                    </div>
+                }
+            }
+        </section>
+        <section class="panel progress-panel">
+            <div class="section-heading"><div><span class="eyebrow">THE BIG PICTURE</span><h2>Your progress</h2></div><a href="/insights">Insights ↗</a></div>
+            <div class="progress-number">@Stats.CompletionPercent<span>%</span></div>
+            <p class="muted">of your collection completed</p>
+            <div class="progress-track"><div class="progress-fill" style="width: @(Stats.CompletionPercent)%"></div></div>
+            <div class="progress-foot"><span>@Stats.Completed completed</span><span>@Stats.WantToPlay in backlog</span></div>
+        </section>
+    </div>
+
+    <section class="panel recent-panel">
+        <div class="section-heading"><div><span class="eyebrow">LATEST ADDITIONS</span><h2>Recently added</h2></div><a href="/library">Open library ↗</a></div>
+        @if (!_games.Any())
+        {
+            <div class="empty-mini">Your collection is empty. Add your first game to get started.</div>
+        }
+        else
+        {
+            <div class="recent-grid">
+                @foreach (var game in GameCatalog.Query(_games).Take(4))
+                {
+                    <div class="recent-item">
+                        <div class="recent-cover @GameVisuals.Palette(game.Title)"><span>@GameVisuals.Initials(game.Title)</span></div>
+                        <strong>@game.Title</strong><small>@game.Status.Label()</small>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private IReadOnlyList<GameEntry>? _games;
+    private string? _error;
+    private CatalogStats Stats => GameCatalog.Summarize(_games ?? []);
+    private IEnumerable<GameEntry> Playing => (_games ?? []).Where(game => game.Status == PlayStatus.Playing).Take(3);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _games = await Repository.GetAllAsync(); }
+        catch (Exception) { _error = "Your collection could not be loaded. Check the data file and try again."; }
+    }
+}
