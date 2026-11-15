@@ -4,6 +4,8 @@ GameShelf is a personal game library inspired by list trackers: record what you 
 
 **GitHub repository:** [Csadow/GameShelf](https://github.com/Csadow/GameShelf)
 
+**Team:** Sailau Mukhammed and Turlas Ali co-developed GameShelf, with an equal 50% contribution each.
+
 The project is a .NET 8 Blazor Web App written in C#. It is designed for the **Introduction to Functional Programming** final project and the separate Blazor project rubric provided with the assignment.
 
 ## Run locally
@@ -73,4 +75,4 @@ GameShelf is a **single collection** local app. It does not provide accounts, a 
 
 The syllabus says AI tools require explicit instructor permission and that uncredited or unauthorized AI-generated work may be treated as plagiarism. Follow that rule for any submission, and be ready to explain every part of the code in the oral defense.
 
-Read the [user guide](docs/USER_GUIDE.md) and [developer notes](docs/DEVELOPER.md) for operation and extension details. The [editable project presentation](presentation/GameShelf-Presentation.pptx) covers the required defense topics and includes the team members' full names.
+Read the [user guide](docs/USER_GUIDE.md) and [developer notes](docs/DEVELOPER.md) for operation and extension details. The [editable project presentation](presentation/GameShelf-Presentation.pptx) covers the required defense topics and records the team members' equal contributions.
